@@ -19,7 +19,6 @@ from lab.flamingo.assets.flamingo.flamingo_rev01_5_1 import FLAMINGO_CFG  # isor
 
 @configclass
 class FlamingoCurriculumCfg(CurriculumCfg):
-
     modify_base_velocity_range = CurrTerm(
         func=mdp.modify_base_velocity_range,
         params={
@@ -31,13 +30,17 @@ class FlamingoCurriculumCfg(CurriculumCfg):
 
 
 @configclass
-class FlamingoRewardsCfg():
+class FlamingoRewardsCfg:
     # -- task
     track_lin_vel_xy_exp = RewTerm(
-        func=mdp.track_lin_vel_xy_link_exp, weight=2.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_lin_vel_xy_link_exp,
+        weight=2.0,
+        params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_link_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_link_exp,
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
     )
 
     # track_lin_vel_xy_exp_fine_grained = RewTerm(
@@ -67,7 +70,9 @@ class FlamingoRewardsCfg():
     joint_deviation_shoulder = RewTerm(
         func=mdp.joint_deviation_zero_l1,
         weight=-0.5,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_joint"])},
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_joint"])
+        },
     )
 
     dof_pos_limits_hip = RewTerm(
@@ -89,7 +94,9 @@ class FlamingoRewardsCfg():
         func=mdp.undesired_contacts,
         weight=-0.5,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_shoulder_link", ".*_hip_link"]),
+            "sensor_cfg": SceneEntityCfg(
+                "contact_forces", body_names=[".*_shoulder_link", ".*_hip_link"]
+            ),
             "threshold": 1.0,
         },
     )
@@ -124,27 +131,26 @@ class FlamingoRewardsCfg():
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)  # default: -0.01
 
 
-
 @configclass
 class FlamingoFlatEnvCfg(LocomotionVelocityFlatEnvCfg):
-
     rewards: FlamingoRewardsCfg = FlamingoRewardsCfg()
     # curriculum: FlamingoCurriculumCfg = FlamingoCurriculumCfg()
 
     def __post_init__(self):
         # post init of parent
+        print("HEREEEEEEEEEEEEEEEE")
         super().__post_init__()
         # scene
         self.scene.robot = FLAMINGO_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
 
-       #! ************** scene & observations setup - 0 *********** !#
-        self.scene.height_scanner = None
-        self.scene.base_height_scanner = None
-        self.scene.left_wheel_height_scanner = None
-        self.scene.right_wheel_height_scanner = None
-        self.scene.left_mask_sensor = None
-        self.scene.right_mask_sensor = None
+        #! ************** scene & observations setup - 0 *********** !#
+        # self.scene.height_scanner = None
+        # self.scene.base_height_scanner = None
+        # self.scene.left_wheel_height_scanner = None
+        # self.scene.right_wheel_height_scanner = None
+        # self.scene.left_mask_sensor = None
+        # self.scene.right_mask_sensor = None
 
         self.observations.none_stack_critic.base_height_scan = None
         self.observations.none_stack_critic.left_wheel_height_scan = None
@@ -211,10 +217,8 @@ class FlamingoFlatEnvCfg(LocomotionVelocityFlatEnvCfg):
         ]
 
 
-
 @configclass
 class FlamingoFlatEnvCfg_PLAY(FlamingoFlatEnvCfg):
-
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

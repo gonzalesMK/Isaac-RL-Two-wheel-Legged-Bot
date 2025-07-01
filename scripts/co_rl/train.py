@@ -16,17 +16,44 @@ from scripts.co_rl.core.runners import OffPolicyRunner
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with CO-RL.")
-parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
-parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
-parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
-parser.add_argument("--num_envs", type=int, default=4096, help="Number of environments to simulate.")
+parser.add_argument(
+    "--video", action="store_true", default=False, help="Record videos during training."
+)
+parser.add_argument(
+    "--video_length",
+    type=int,
+    default=200,
+    help="Length of the recorded video (in steps).",
+)
+parser.add_argument(
+    "--video_interval",
+    type=int,
+    default=2000,
+    help="Interval between video recordings (in steps).",
+)
+parser.add_argument(
+    "--num_envs", type=int, default=4096, help="Number of environments to simulate."
+)
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--algo", type=str, default="ppo", help="Name of the task.")
-parser.add_argument("--seed", type=int, default=42, help="Seed used for the environment")
-parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
-parser.add_argument("--experiment_description", type=str, default=None, help="Description of the experiment.")
-parser.add_argument("--num_policy_stacks", type=int, default=2, help="Number of policy stacks.")
-parser.add_argument("--num_critic_stacks", type=int, default=2, help="Number of critic stacks.")
+parser.add_argument(
+    "--seed", type=int, default=42, help="Seed used for the environment"
+)
+parser.add_argument(
+    "--max_iterations", type=int, default=None, help="RL Policy training iterations."
+)
+parser.add_argument(
+    "--experiment_description",
+    type=str,
+    default=None,
+    help="Description of the experiment.",
+)
+parser.add_argument(
+    "--num_policy_stacks", type=int, default=2, help="Number of policy stacks."
+)
+parser.add_argument(
+    "--num_critic_stacks", type=int, default=2, help="Number of critic stacks."
+)
 
 # append CO-RL cli arguments
 cli_args.add_co_rl_args(parser)
@@ -61,7 +88,10 @@ from isaaclab.envs import (
     ManagerBasedRLEnvCfg,
     multi_agent_to_single_agent,
 )
-from lab.flamingo.isaaclab.isaaclab.envs import ManagerBasedConstraintRLEnv, ManagerBasedConstraintRLEnvCfg
+from lab.flamingo.isaaclab.isaaclab.envs import (
+    ManagerBasedConstraintRLEnv,
+    ManagerBasedConstraintRLEnvCfg,
+)
 
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
@@ -84,26 +114,50 @@ torch.backends.cudnn.benchmark = False
 
 
 @hydra_task_config(args_cli.task, "co_rl_cfg_entry_point")
-def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg | ManagerBasedConstraintRLEnvCfg, agent_cfg: CoRlPolicyRunnerCfg):
+def main(
+    env_cfg: ManagerBasedRLEnvCfg
+    | DirectRLEnvCfg
+    | DirectMARLEnvCfg
+    | ManagerBasedConstraintRLEnvCfg,
+    agent_cfg: CoRlPolicyRunnerCfg,
+):
     """Train with CO-RL agent."""
     # override configurations with non-hydra CLI arguments
     agent_cfg = cli_args.update_co_rl_cfg(agent_cfg, args_cli)
-    env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
+    env_cfg.scene.num_envs = (
+        args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
+    )
     agent_cfg.max_iterations = (
-        args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg.max_iterations
+        args_cli.max_iterations
+        if args_cli.max_iterations is not None
+        else agent_cfg.max_iterations
     )
     agent_cfg.experiment_description = (
         args_cli.experiment_description
         if args_cli.experiment_description is not None
         else agent_cfg.experiment_description
     )
-    agent_cfg.num_policy_stacks = args_cli.num_policy_stacks if args_cli.num_policy_stacks is not None else agent_cfg.num_policy_stacks
-    agent_cfg.num_critic_stacks = args_cli.num_critic_stacks if args_cli.num_critic_stacks is not None else agent_cfg.num_critic_stacks
+    agent_cfg.num_policy_stacks = (
+        args_cli.num_policy_stacks
+        if args_cli.num_policy_stacks is not None
+        else agent_cfg.num_policy_stacks
+    )
+    agent_cfg.num_critic_stacks = (
+        args_cli.num_critic_stacks
+        if args_cli.num_critic_stacks is not None
+        else agent_cfg.num_critic_stacks
+    )
 
-    is_off_policy = False if agent_cfg.to_dict()["algorithm"]["class_name"] in ["PPO", "SRMPPO"] else True
+    is_off_policy = (
+        False
+        if agent_cfg.to_dict()["algorithm"]["class_name"] in ["PPO", "SRMPPO"]
+        else True
+    )
 
     # specify directory for logging experiments
-    log_root_path = os.path.join("logs", "co_rl", agent_cfg.experiment_name, args_cli.algo)
+    log_root_path = os.path.join(
+        "logs", "co_rl", agent_cfg.experiment_name, args_cli.algo
+    )
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     # specify directory for logging runs: {time-stamp}_{run_name}
@@ -114,18 +168,22 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg | Man
     # This way, the Ray Tune workflow can extract experiment name.
     print(f"Exact experiment name requested from command line: {log_dir}")
     # create isaac environment
-    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    env = gym.make(
+        args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
+    )
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
-    
+
     if isinstance(env.unwrapped, ManagerBasedConstraintRLEnv):
         agent_cfg.use_constraint_rl = True
 
     # save resume path before creating a new log_dir
     if agent_cfg.resume:
-        resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
+        resume_path = get_checkpoint_path(
+            log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
+        )
 
     # wrap for video recording
     if args_cli.video:
@@ -142,18 +200,26 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg | Man
     env = CoRlVecEnvWrapper(env, agent_cfg)
     # create runner from co-rl
     if is_off_policy:
-        runner = OffPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+        runner = OffPolicyRunner(
+            env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device
+        )
     else:
         if args_cli.algo == "srmppo":
-            runner = SRMOnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+            runner = SRMOnPolicyRunner(
+                env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device
+            )
         elif args_cli.algo == "ppo":
-            runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+            runner = OnPolicyRunner(
+                env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device
+            )
     # write git state to logs
     runner.add_git_repo_to_log(__file__)
     # save resume path before creating a new log_dir
     if agent_cfg.resume:
         # get path to previous checkpoint
-        resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
+        resume_path = get_checkpoint_path(
+            log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
+        )
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model
         runner.load(resume_path)
@@ -168,7 +234,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg | Man
     dump_pickle(os.path.join(log_dir, "params", "agent.pkl"), agent_cfg)
 
     # run training
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    runner.learn(
+        num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True
+    )
 
     # close the simulator
     env.close()

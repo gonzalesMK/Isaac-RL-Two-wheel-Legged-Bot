@@ -19,7 +19,7 @@ from . import (
 #########################################CoRL###################################################
 ################################################################################################
 gym.register(
-    id="Isaac-Velocity-Flat-Flamingo-v1-ppo",
+    id="Isaac-Velocity-Flat-Flamingo-v12-ppo",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
